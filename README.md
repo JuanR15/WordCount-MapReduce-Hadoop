@@ -1,126 +1,44 @@
+# Hadoop MapReduce WordCount Implementation
 
-# WordCount-Using-MapReduce-Hadoop
+This project demonstrates a complete implementation of the WordCount program using Java, Apache Maven, Hadoop 3.2.1, and Docker. The objective was to build a MapReduce application, package it into a JAR file, deploy it to a Hadoop cluster running inside Docker containers, and execute the job using HDFS for distributed data processing.
 
-This repository is designed to test MapReduce jobs using a simple word count dataset. In this project we provide a input file and then we create a maaper and reducer logic to count the occurence of each word in the given input. There are sample input and Expected output for the sample input.
+The Hadoop cluster was deployed using Docker containers, including a NameNode, multiple DataNodes, ResourceManager, NodeManagers, and a HistoryServer. Java (OpenJDK 25) and Apache Maven 3.9.12 were installed locally to build the project. Maven was configured using environment variables, and the project was successfully compiled using:
 
-## Approach and implementation
-1. Mapper Logic: We use StringTokenizer to create tokens from the input file and loop it using while loop to map all the words in the input file with key value pairs. In this mapper, it will not count characters that are smaller than 3.
-
-2. Reducer Logic: Using the output of Mapper logic we increase a variable sum value as we encounter same words and retun them. this way we will get a list of words and the number of times it occured in the input file as output.
-
-## Setup and Execution
-
-### 1. **Start the Hadoop Cluster**
-
-Run the following command to start the Hadoop cluster:
-
-```bash
-docker compose up -d
-```
-
-### 2. **Build the Code**
-
-Build the code using Maven:
-
-```bash
 mvn clean package
-```
 
-### 4. **Copy JAR to Docker Container**
+This generated the executable JAR file:
 
-Copy the JAR file to the Hadoop ResourceManager container:
+WordCountUsingHadoop-0.0.1-SNAPSHOT.jar
 
-```bash
-docker cp target/WordCountUsingHadoop-0.0.1-SNAPSHOT.jar resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
-```
+The JAR file was then copied into the ResourceManager container using:
 
-### 5. **Move Dataset to Docker Container**
+docker cp target/WordCountUsingHadoop-0.0.1-SNAPSHOT.jar resourcemanager:/opt/hadoop-3.2.1/share/hadoop/
 
-Copy the dataset to the Hadoop ResourceManager container:
+An input directory was created in HDFS:
 
-```bash
-docker cp shared-folder/input/data/input.txt resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/
-```
+hdfs dfs -mkdir -p /input
 
-### 6. **Connect to Docker Container**
+The input file was uploaded into HDFS:
 
-Access the Hadoop ResourceManager container:
+hdfs dfs -put input.txt /input/
 
-```bash
-docker exec -it resourcemanager /bin/bash
-```
+The MapReduce job was executed using:
 
-Navigate to the Hadoop directory:
+hadoop jar WordCountUsingHadoop-0.0.1-SNAPSHOT.jar com.example.controller.Controller /input /output
 
-```bash
-cd /opt/hadoop-3.2.1/share/hadoop/mapreduce/
-```
+After execution, the output was retrieved using:
 
-### 7. **Set Up HDFS**
+hdfs dfs -cat /output/part-r-00000
 
-Create a folder in HDFS for the input dataset:
+The program successfully processed the input file and produced the following word counts:
 
-```bash
-hadoop fs -mkdir -p /input/data
-```
+dataset 1  
+your 1  
+own 1  
+input 1  
+Create 1  
 
-Copy the input dataset to the HDFS folder:
+This confirms that the Mapper correctly tokenized the input text and emitted key-value pairs, and the Reducer correctly aggregated and summed the word frequencies.
 
-```bash
-hadoop fs -put ./input.txt /input/data
-```
+During development, several technical challenges were encountered. Maven was initially not recognized due to incorrect PATH configuration. Java was not properly installed in the system environment variables. A ClassNotFoundException occurred due to using the incorrect fully-qualified class name when executing the Hadoop job. Additionally, navigating Docker containers and interacting with HDFS required troubleshooting and validation of file locations. These issues were resolved by properly configuring environment variables, verifying the contents of the compiled JAR file, and using the correct class path when running the job.
 
-### 8. **Execute the MapReduce Job**
-
-Run your MapReduce job using the following command: Here I got an error saying output already exists so I changed it to output1 instead as destination folder
-
-```bash
-hadoop jar /opt/hadoop-3.2.1/share/hadoop/mapreduce/WordCountUsingHadoop-0.0.1-SNAPSHOT.jar com.example.controller.Controller /input/data/input.txt /output1
-```
-
-### 9. **View the Output**
-
-To view the output of your MapReduce job, use:
-
-```bash
-hadoop fs -cat /output1/*
-```
-
-### 10. **Copy Output from HDFS to Local OS**
-
-To copy the output from HDFS to your local machine:
-
-1. Use the following command to copy from HDFS:
-    ```bash
-    hdfs dfs -get /output1 /opt/hadoop-3.2.1/share/hadoop/mapreduce/
-    ```
-
-2. use Docker to copy from the container to your local machine:
-   ```bash
-   exit 
-   ```
-    ```bash
-    docker cp resourcemanager:/opt/hadoop-3.2.1/share/hadoop/mapreduce/output1/ shared-folder/output/
-    ```
-3. Commit and push to your repo so that we can able to see your output
-
-
-## Sample Input: 
- ```bash
-   Hello world
-   Hello Hadoop
-   Hadoop is powerful
-   Hadoop is used for big data
-   ```
-
-## Expected output: 
- ```bash
-Hadoop 3
-Hello 2
-used 1
-for 1
-big 1
-data 1
-powerful 1
-world 1
-   ```
